@@ -77,7 +77,6 @@ export class GoogleMapsBusinessScraper {
         
         console.log(`${icons[type]} [${timestamp}] ${message}`);
     }
-
     /**
      * Get browser launch options optimized for Render
      */
@@ -85,8 +84,8 @@ export class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - use default Puppeteer's bundled Chromium
-            this.log('🌐 Running on Render - using bundled Chromium', 'info');
+            // Render environment - use system-installed Chrome
+            this.log('🌐 Running on Render - using system Chrome', 'info');
             return {
                 headless: 'new',
                 defaultViewport: { width: 1366, height: 768 },
@@ -108,8 +107,8 @@ export class GoogleMapsBusinessScraper {
                     '--no-default-browser-check',
                     '--no-first-run',
                     '--disable-background-networking'
-                ]
-                // No executablePath - let Puppeteer use bundled Chromium
+                ],
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
             };
         } else {
             // Local development - try to find Chrome
@@ -136,7 +135,6 @@ export class GoogleMapsBusinessScraper {
             return options;
         }
     }
-
     /**
      * Find Chrome executable path for local development
      */
