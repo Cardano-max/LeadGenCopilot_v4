@@ -108,7 +108,7 @@ export class GoogleMapsBusinessScraper {
                     '--no-first-run',
                     '--disable-background-networking'
                 ],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
+                executablePath: puppeteer.executablePath()
             };
         } else {
             // Local development - try to find Chrome
