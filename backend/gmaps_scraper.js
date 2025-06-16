@@ -1,11 +1,11 @@
 /**
- * 🚀 GOOGLE MAPS BUSINESS SCRAPER - FINAL WORKING VERSION
+ * 🚀 GOOGLE MAPS BUSINESS SCRAPER - RENDER OPTIMIZED VERSION
  * 
  * Features:
+ * - Fixed Chrome detection for Render environment
+ * - Uses Puppeteer's bundled Chromium by default
  * - Proven double-scroll method (6→12→18 results tested)
  * - Pro Mode with parallel processing (10x faster)
- * - Chrome auto-detection for macOS/Linux/Windows
- * - Automatic fallback from Pro to Standard mode
  * - Production-ready error handling
  * 
  * @version 1.0.0
@@ -79,24 +79,81 @@ export class GoogleMapsBusinessScraper {
     }
 
     /**
-     * Find Chrome executable path for different platforms
+     * Get browser launch options optimized for Render
      */
-    getChromePath() {
+    getBrowserOptions() {
+        const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
+        
+        if (isRender) {
+            // Render environment - use default Puppeteer's bundled Chromium
+            this.log('🌐 Running on Render - using bundled Chromium', 'info');
+            return {
+                headless: 'new',
+                defaultViewport: { width: 1366, height: 768 },
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--disable-gpu',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding',
+                    '--disable-web-security',
+                    '--disable-features=TranslateUI',
+                    '--disable-extensions',
+                    '--disable-default-apps',
+                    '--disable-sync',
+                    '--no-default-browser-check',
+                    '--no-first-run',
+                    '--disable-background-networking'
+                ]
+                // No executablePath - let Puppeteer use bundled Chromium
+            };
+        } else {
+            // Local development - try to find Chrome
+            const chromePath = this.getLocalChromePath();
+            this.log(`💻 Local development - Chrome path: ${chromePath || 'auto-detect'}`, 'info');
+            
+            const options = {
+                headless: 'new',
+                defaultViewport: { width: 1366, height: 768 },
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--no-first-run',
+                    '--disable-gpu'
+                ]
+            };
+            
+            if (chromePath) {
+                options.executablePath = chromePath;
+            }
+            
+            return options;
+        }
+    }
+
+    /**
+     * Find Chrome executable path for local development
+     */
+    getLocalChromePath() {
         const platform = process.platform;
         
         if (platform === 'darwin') {
             // macOS - check multiple possible paths
             const macPaths = [
                 '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-                '/Applications/Chromium.app/Contents/MacOS/Chromium',
-                '/usr/bin/google-chrome-stable',
-                '/usr/bin/chromium-browser'
+                '/Applications/Chromium.app/Contents/MacOS/Chromium'
             ];
             
             for (const path of macPaths) {
                 try {
                     if (fs.existsSync(path)) {
-                        this.log(`✅ Found Chrome at: ${path}`, 'cluster');
+                        this.log(`✅ Found Chrome at: ${path}`, 'success');
                         return path;
                     }
                 } catch (error) {
@@ -107,19 +164,30 @@ export class GoogleMapsBusinessScraper {
             this.log('⚠️ Chrome not found at expected paths, using auto-detect', 'warn');
             return undefined; // Let puppeteer auto-detect
             
-        } else if (platform === 'linux') {
-            // Linux/Render
-            return '/usr/bin/google-chrome-stable';
         } else if (platform === 'win32') {
             // Windows
-            return 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+            const winPaths = [
+                'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+                'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
+            ];
+            
+            for (const path of winPaths) {
+                try {
+                    if (fs.existsSync(path)) {
+                        this.log(`✅ Found Chrome at: ${path}`, 'success');
+                        return path;
+                    }
+                } catch (error) {
+                    // Continue checking other paths
+                }
+            }
         }
         
         return undefined; // Let puppeteer auto-detect
     }
 
     /**
-     * PROVEN DOUBLE SCROLL METHOD
+     * PROVEN DOUBLE SCROLL METHOD - Optimized for Render
      */
     async performDoubleScroll(page) {
         return await page.evaluate(() => {
@@ -148,7 +216,7 @@ export class GoogleMapsBusinessScraper {
     }
 
     /**
-     * INFINITE SCROLL HANDLER
+     * INFINITE SCROLL HANDLER - Render Optimized
      */
     async handleInfiniteScroll(page, maxResults) {
         this.log(`📜 Starting proven double-scroll method for ${maxResults} results...`, 'scroll');
@@ -280,35 +348,16 @@ export class GoogleMapsBusinessScraper {
     }
 
     /**
-     * Sequential scraper (Standard Mode)
+     * Sequential scraper optimized for Render
      */
     async scrapeSequential(query, maxResults) {
-        this.log('🔄 Using sequential scraping mode (Standard)', 'info');
+        this.log('🔄 Using sequential scraping mode (Render optimized)', 'info');
         this.stats.mode = 'sequential';
         
         try {
-            const chromePath = this.getChromePath();
-            
-            // Browser configuration
-            this.browser = await puppeteer.launch({
-                headless: 'new',
-                executablePath: chromePath,
-                defaultViewport: { width: 1366, height: 768 },
-                args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--disable-gpu',
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding',
-                    '--disable-web-security',
-                    '--disable-features=TranslateUI',
-                    '--disable-extensions'
-                ]
-            });
+            // Browser configuration optimized for Render
+            const browserOptions = this.getBrowserOptions();
+            this.browser = await puppeteer.launch(browserOptions);
 
             this.page = await this.browser.newPage();
             
@@ -357,7 +406,7 @@ export class GoogleMapsBusinessScraper {
             
             const resultsToProcess = Math.min(maxResults, businessUrls.length);
             
-            // Process each business
+            // Process each business with progress logging
             for (let i = 0; i < resultsToProcess; i++) {
                 const business = businessUrls[i];
                 
@@ -406,16 +455,16 @@ export class GoogleMapsBusinessScraper {
     }
 
     /**
-     * Parallel scraper for Pro Mode - 10x faster
+     * Parallel scraper for Pro Mode - 10x faster (Render optimized)
      */
     async scrapeParallel(query, maxResults) {
         this.log('🚀 Using PRO parallel scraping mode (10x faster)', 'cluster');
         this.stats.mode = 'parallel-pro';
         
         try {
-            const chromePath = this.getChromePath();
-            this.log(`🔍 Platform: ${process.platform}, Chrome path: ${chromePath || 'auto-detect'}`, 'cluster');
-
+            // Get optimized browser options for Render
+            const browserOptions = this.getBrowserOptions();
+            
             // Initialize cluster with optimized settings for speed
             this.cluster = await Cluster.launch({
                 concurrency: Cluster.CONCURRENCY_CONTEXT,
@@ -423,25 +472,7 @@ export class GoogleMapsBusinessScraper {
                 retryLimit: this.options.retryLimit,
                 timeout: this.options.timeout,
                 monitor: this.options.verbose,
-                puppeteerOptions: {
-                    headless: 'new',
-                    executablePath: chromePath,
-                    defaultViewport: { width: 1366, height: 768 },
-                    args: [
-                        '--no-sandbox',
-                        '--disable-setuid-sandbox',
-                        '--disable-dev-shm-usage',
-                        '--disable-accelerated-2d-canvas',
-                        '--no-first-run',
-                        '--disable-gpu',
-                        '--disable-background-timer-throttling',
-                        '--disable-backgrounding-occluded-windows',
-                        '--disable-renderer-backgrounding',
-                        '--disable-web-security',
-                        '--disable-features=TranslateUI',
-                        '--disable-extensions'
-                    ]
-                }
+                puppeteerOptions: browserOptions
             });
 
             this.log(`✅ Pro cluster initialized with ${this.options.maxConcurrency} workers`, 'success');
@@ -522,21 +553,8 @@ export class GoogleMapsBusinessScraper {
      * Helper method to get business URLs sequentially (used by parallel scraper)
      */
     async getBusinessUrlsSequential(query, maxResults) {
-        const chromePath = this.getChromePath();
-
-        const browser = await puppeteer.launch({
-            headless: 'new',
-            executablePath: chromePath,
-            defaultViewport: { width: 1366, height: 768 },
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--disable-gpu'
-            ]
-        });
+        const browserOptions = this.getBrowserOptions();
+        const browser = await puppeteer.launch(browserOptions);
 
         try {
             const page = await browser.newPage();
@@ -573,7 +591,7 @@ export class GoogleMapsBusinessScraper {
     }
 
     /**
-     * Main scraping method with automatic fallback
+     * Main scraping method
      */
     async scrapeBusinesses(query, maxResults = 50) {
         this.stats.startTime = Date.now();
