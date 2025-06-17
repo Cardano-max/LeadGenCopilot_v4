@@ -86,6 +86,10 @@ export class GoogleMapsBusinessScraper {
         if (isRender) {
             // Render environment - use system-installed Chrome
             this.log('🌐 Running on Render - using system Chrome', 'info');
+            
+            // Use system Chrome on Render
+            const chromePath = process.env.CHROME_BIN || '/usr/bin/google-chrome';
+            
             return {
                 headless: 'new',
                 defaultViewport: { width: 1366, height: 768 },
@@ -96,11 +100,9 @@ export class GoogleMapsBusinessScraper {
                     '--disable-accelerated-2d-canvas',
                     '--no-first-run',
                     '--disable-gpu',
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding',
-                    '--disable-web-security',
-                    '--disable-features=TranslateUI',
+                    '--disable-dev-tools',
+                    '--disable-software-rasterizer',
+                    '--disable-notifications',
                     '--disable-extensions',
                     '--disable-default-apps',
                     '--disable-sync',
