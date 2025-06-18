@@ -87,9 +87,9 @@ class GoogleMapsBusinessScraper {
         if (isRender) {
             // Render environment - use system-installed Chromium
             this.log('🌐 Running on Render - using system Chromium', 'info');
-            
+           
             const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
-            const args = (process.env.PUPPETEER_ARGS || '').split(',').filter(Boolean);
+            const args = (process.env.PUPPETEER_ARGS || '').split(',').filter(Boolean); 
             
             return {
                 headless: 'new',

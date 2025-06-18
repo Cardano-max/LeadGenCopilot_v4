@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: leadgen-copilot-backend-v5
+    env: node
+    region: oregon
+    buildCommand: cd backend && npm install --legacy-peer-deps && npx puppeteer browsers install chromium
+    startCommand: cd backend && NODE_OPTIONS="--openssl-legacy-provider" node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 18.x
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "true"
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium
+      - key: CHROME_BIN
+        value: /usr/bin/chromium
+      - key: PUPPETEER_ARGS
+        value: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--headless=new
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: FRONTEND_URL
+        value: https://leadgen-copilot-frontend-v5.onrender.com
+      - key: RENDER
+        value: "true"
+    packages:
+      - chromium
+      - chromium-driver
+    healthCheckPath: /health
+    autoDeploy: true 
