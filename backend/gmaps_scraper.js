@@ -91,7 +91,7 @@ export class GoogleMapsBusinessScraper {
             const chromePath = process.env.CHROME_BIN || '/usr/bin/google-chrome';
             
             return {
-                headless: 'new',
+                headless: true,
                 defaultViewport: { width: 1366, height: 768 },
                 args: [
                     '--no-sandbox',
@@ -103,11 +103,18 @@ export class GoogleMapsBusinessScraper {
                     '--disable-dev-tools',
                     '--disable-software-rasterizer',
                     '--disable-notifications',
-                    '--disable-extensions'
+                    '--disable-extensions',
+                    '--disable-default-apps',
+                    '--disable-sync',
+                    '--no-default-browser-check',
+                    '--disable-background-networking'
                 ],
                 executablePath: chromePath,
                 ignoreHTTPSErrors: true,
-                ignoreDefaultArgs: ['--disable-extensions']
+                ignoreDefaultArgs: ['--disable-extensions'],
+                handleSIGINT: false,
+                handleSIGTERM: false,
+                handleSIGHUP: false
             };
         } else {
             // Local development - try to find Chrome
