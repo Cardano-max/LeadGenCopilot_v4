@@ -85,22 +85,19 @@ class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - use system-installed Chrome
-            this.log('🌐 Running on Render - using system Chrome', 'info');
+            // Render environment - use system-installed Chromium
+            this.log('🌐 Running on Render - using system Chromium', 'info');
             
-            // Use system Chrome on Render
-            const chromePath = process.env.CHROME_BIN || '/usr/bin/google-chrome';
+            const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+            const args = (process.env.PUPPETEER_ARGS || '').split(',').filter(Boolean);
             
             return {
-                headless: true,
+                headless: 'new',
                 defaultViewport: { width: 1366, height: 768 },
                 args: [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
+                    ...args,
                     '--disable-accelerated-2d-canvas',
                     '--no-first-run',
-                    '--disable-gpu',
                     '--disable-dev-tools',
                     '--disable-software-rasterizer',
                     '--disable-notifications',
@@ -118,8 +115,7 @@ class GoogleMapsBusinessScraper {
                 ignoreDefaultArgs: ['--disable-extensions'],
                 handleSIGINT: false,
                 handleSIGTERM: false,
-                handleSIGHUP: false,
-                product: 'chrome'
+                handleSIGHUP: false
             };
         } else {
             // Local development - try to find Chrome
