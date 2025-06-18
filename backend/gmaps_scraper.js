@@ -14,6 +14,7 @@
 
 import { Cluster } from 'puppeteer-cluster';
 import puppeteer from 'puppeteer-core';
+import { executablePath } from 'puppeteer-core';
 import fs from 'fs';
 
 export class GoogleMapsBusinessScraper {
@@ -107,14 +108,18 @@ export class GoogleMapsBusinessScraper {
                     '--disable-default-apps',
                     '--disable-sync',
                     '--no-default-browser-check',
-                    '--disable-background-networking'
+                    '--disable-background-networking',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding'
                 ],
                 executablePath: chromePath,
                 ignoreHTTPSErrors: true,
                 ignoreDefaultArgs: ['--disable-extensions'],
                 handleSIGINT: false,
                 handleSIGTERM: false,
-                handleSIGHUP: false
+                handleSIGHUP: false,
+                product: 'chrome'
             };
         } else {
             // Local development - try to find Chrome
