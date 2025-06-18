@@ -17,7 +17,7 @@ const puppeteer = require('puppeteer-core');
 const { executablePath } = require('puppeteer-core');
 const fs = require('fs');
 
-export class GoogleMapsBusinessScraper {
+class GoogleMapsBusinessScraper {
     constructor(options = {}) {
         this.options = {
             maxConcurrency: options.maxConcurrency ?? 2,
