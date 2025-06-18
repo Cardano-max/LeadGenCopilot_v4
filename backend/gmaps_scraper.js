@@ -85,10 +85,10 @@ class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - use system-installed Chromium
-            this.log('🌐 Running on Render - using system Chromium', 'info');
+            // Render environment - use system-installed Chrome
+            this.log('🌐 Running on Render - using system Chrome', 'info');
            
-            const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
+            const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
             const args = (process.env.PUPPETEER_ARGS || '').split(',').filter(Boolean); 
             
             return {
@@ -237,7 +237,7 @@ class GoogleMapsBusinessScraper {
                 this.log(`📊 Attempt ${scrollAttempts + 1}: ${currentResults}/${maxResults} results`, 'debug');
 
                 if (currentResults >= maxResults) {
-                    this.log(`🎯 Target reached: ${currentResults}/${maxResults} results`, 'scroll');
+                    this.log(`�� Target reached: ${currentResults}/${maxResults} results`, 'scroll');
                     break;
                 }
 
