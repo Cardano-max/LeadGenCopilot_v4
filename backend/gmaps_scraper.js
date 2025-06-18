@@ -12,10 +12,10 @@
  * @author LeadGen Copilot Team
  */
 
-import { Cluster } from 'puppeteer-cluster';
-import puppeteer from 'puppeteer-core';
-import { executablePath } from 'puppeteer-core';
-import fs from 'fs';
+const { Cluster } = require('puppeteer-cluster');
+const puppeteer = require('puppeteer-core');
+const { executablePath } = require('puppeteer-core');
+const fs = require('fs');
 
 export class GoogleMapsBusinessScraper {
     constructor(options = {}) {

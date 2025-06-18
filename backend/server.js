@@ -1,7 +1,7 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { GoogleMapsBusinessScraper } from './gmaps_scraper.js';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const { GoogleMapsBusinessScraper } = require('./gmaps_scraper.js');
 
 // Load environment variables
 dotenv.config();
