@@ -2,7 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const GoogleMapsBusinessScraper = require('./gmaps_scraper.js');
-const scraper = new GoogleMapsBusinessScraper();
+
+// Create an instance of the scraper
+const scraper = new GoogleMapsBusinessScraper({
+    useParallel: process.env.USE_PARALLEL === 'true',
+    maxConcurrency: parseInt(process.env.MAX_CONCURRENCY) || 2,
+    maxResults: parseInt(process.env.MAX_RESULTS) || 50,
+    delay: parseInt(process.env.DELAY) || 3000
+});
 
 // Load environment variables
 dotenv.config();
