@@ -35,7 +35,7 @@
         "node": "18.x",
         "npm": "8.x"
     },
-    "type": "commonjs",
+    "type": "module",
     "main": "server.js",
     "resolutions": {
         "puppeteer-core": "21.7.0"

@@ -1,7 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const GoogleMapsBusinessScraper = require('./gmaps_scraper.js');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import GoogleMapsBusinessScraper from './gmaps_scraper.js';
+
+// Load environment variables
+dotenv.config();
 
 // Create an instance of the scraper
 const scraper = new GoogleMapsBusinessScraper({
@@ -10,9 +13,6 @@ const scraper = new GoogleMapsBusinessScraper({
     maxResults: parseInt(process.env.MAX_RESULTS) || 50,
     delay: parseInt(process.env.DELAY) || 3000
 });
-
-// Load environment variables
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
