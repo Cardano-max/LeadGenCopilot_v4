@@ -85,32 +85,56 @@ class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - use system-installed Chrome
-            this.log('🌐 Running on Render - using system Chrome', 'info');
+            // Render environment - try system Chrome first, fallback to bundled
+            this.log('🌐 Running on Render - checking Chrome availability', 'info');
            
-            const chromePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable';
-            const args = (process.env.PUPPETEER_ARGS || '').split(',').filter(Boolean); 
+            const systemChromePath = '/usr/bin/google-chrome-stable';
+            const args = [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--disable-dev-tools',
+                '--disable-software-rasterizer',
+                '--disable-notifications',
+                '--disable-extensions',
+                '--disable-default-apps',
+                '--disable-sync',
+                '--no-default-browser-check',
+                '--disable-background-networking',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding',
+                '--disable-gpu'
+            ];
             
+            // Check if system Chrome exists (synchronous)
+            try {
+                if (fs.existsSync(systemChromePath)) {
+                    this.log('✅ Found system Chrome, using it', 'success');
+                    return {
+                        headless: 'new',
+                        defaultViewport: { width: 1366, height: 768 },
+                        args,
+                        executablePath: systemChromePath,
+                        ignoreHTTPSErrors: true,
+                        ignoreDefaultArgs: ['--disable-extensions'],
+                        handleSIGINT: false,
+                        handleSIGTERM: false,
+                        handleSIGHUP: false
+                    };
+                }
+            } catch (error) {
+                this.log(`⚠️ System Chrome check failed: ${error.message}`, 'warn');
+            }
+            
+            // Fallback to bundled Chromium
+            this.log('🔄 Falling back to bundled Chromium', 'info');
             return {
                 headless: 'new',
                 defaultViewport: { width: 1366, height: 768 },
-                args: [
-                    ...args,
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--disable-dev-tools',
-                    '--disable-software-rasterizer',
-                    '--disable-notifications',
-                    '--disable-extensions',
-                    '--disable-default-apps',
-                    '--disable-sync',
-                    '--no-default-browser-check',
-                    '--disable-background-networking',
-                    '--disable-background-timer-throttling',
-                    '--disable-backgrounding-occluded-windows',
-                    '--disable-renderer-backgrounding'
-                ],
-                executablePath: chromePath,
+                args,
                 ignoreHTTPSErrors: true,
                 ignoreDefaultArgs: ['--disable-extensions'],
                 handleSIGINT: false,
