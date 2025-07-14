@@ -9,11 +9,7 @@ services:
       - key: NODE_VERSION
         value: 20.x
       - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
-        value: "true"
-      - key: PUPPETEER_EXECUTABLE_PATH
-        value: /usr/bin/google-chrome-stable
-      - key: CHROME_BIN
-        value: /usr/bin/google-chrome-stable
+        value: "false"
       - key: PUPPETEER_ARGS
         value: --no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu,--headless=new
       - key: NODE_ENV

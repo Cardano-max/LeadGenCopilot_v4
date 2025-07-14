@@ -13,8 +13,7 @@
  */
 
 import { Cluster } from 'puppeteer-cluster';
-import puppeteer from 'puppeteer-core';
-import { executablePath } from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 import fs from 'fs';
 
 class GoogleMapsBusinessScraper {
@@ -131,16 +130,34 @@ class GoogleMapsBusinessScraper {
             
             // Fallback to bundled Chromium
             this.log('🔄 Falling back to bundled Chromium', 'info');
-            return {
-                headless: 'new',
-                defaultViewport: { width: 1366, height: 768 },
-                args,
-                ignoreHTTPSErrors: true,
-                ignoreDefaultArgs: ['--disable-extensions'],
-                handleSIGINT: false,
-                handleSIGTERM: false,
-                handleSIGHUP: false
-            };
+            try {
+                const chromiumPath = puppeteer.executablePath();
+                this.log(`📦 Using bundled Chromium at: ${chromiumPath}`, 'info');
+                return {
+                    headless: 'new',
+                    defaultViewport: { width: 1366, height: 768 },
+                    args,
+                    executablePath: chromiumPath,
+                    ignoreHTTPSErrors: true,
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                    handleSIGINT: false,
+                    handleSIGTERM: false,
+                    handleSIGHUP: false
+                };
+            } catch (error) {
+                this.log(`❌ Failed to get bundled Chromium path: ${error.message}`, 'error');
+                // Last resort - let Puppeteer auto-detect
+                return {
+                    headless: 'new',
+                    defaultViewport: { width: 1366, height: 768 },
+                    args,
+                    ignoreHTTPSErrors: true,
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                    handleSIGINT: false,
+                    handleSIGTERM: false,
+                    handleSIGHUP: false
+                };
+            }
         } else {
             // Local development - try to find Chrome
             const chromePath = this.getLocalChromePath();
