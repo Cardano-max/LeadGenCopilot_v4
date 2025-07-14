@@ -130,9 +130,41 @@ class GoogleMapsBusinessScraper {
             
             // Fallback to bundled Chromium
             this.log('🔄 Falling back to bundled Chromium', 'info');
+            
+            // Try to find Chrome in cache directory first
+            const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer';
+            
+            // Check for specific Chrome versions in cache
+            try {
+                const chromeDir = `${cacheDir}/chrome`;
+                if (fs.existsSync(chromeDir)) {
+                    const versions = fs.readdirSync(chromeDir);
+                    for (const version of versions) {
+                        const chromePath = `${chromeDir}/${version}/chrome-linux64/chrome`;
+                        if (fs.existsSync(chromePath)) {
+                            this.log(`📦 Found Chrome in cache: ${chromePath}`, 'success');
+                            return {
+                                headless: 'new',
+                                defaultViewport: { width: 1366, height: 768 },
+                                args,
+                                executablePath: chromePath,
+                                ignoreHTTPSErrors: true,
+                                ignoreDefaultArgs: ['--disable-extensions'],
+                                handleSIGINT: false,
+                                handleSIGTERM: false,
+                                handleSIGHUP: false
+                            };
+                        }
+                    }
+                }
+            } catch (error) {
+                this.log(`⚠️ Cache Chrome search failed: ${error.message}`, 'warn');
+            }
+            
+            // Try Puppeteer's executablePath as fallback
             try {
                 const chromiumPath = puppeteer.executablePath();
-                this.log(`📦 Using bundled Chromium at: ${chromiumPath}`, 'info');
+                this.log(`📦 Using Puppeteer's bundled Chromium at: ${chromiumPath}`, 'info');
                 return {
                     headless: 'new',
                     defaultViewport: { width: 1366, height: 768 },
@@ -147,6 +179,7 @@ class GoogleMapsBusinessScraper {
             } catch (error) {
                 this.log(`❌ Failed to get bundled Chromium path: ${error.message}`, 'error');
                 // Last resort - let Puppeteer auto-detect
+                this.log('🔄 Using auto-detect as last resort', 'warn');
                 return {
                     headless: 'new',
                     defaultViewport: { width: 1366, height: 768 },
