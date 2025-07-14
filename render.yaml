@@ -3,8 +3,9 @@ services:
     name: leadgen-copilot-backend-v5
     env: node
     region: oregon
-    buildCommand: ./build.sh
-    startCommand: cd backend && NODE_OPTIONS="--openssl-legacy-provider" node server.js
+    rootDir: backend
+    buildCommand: npm ci --only=production && npx puppeteer browsers install chrome
+    startCommand: NODE_OPTIONS="--openssl-legacy-provider" node server.js
     envVars:
       - key: NODE_VERSION
         value: 18.x
