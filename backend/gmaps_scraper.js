@@ -652,3 +652,5 @@ class GoogleMapsBusinessScraper {
         }
     }
 }
+
+export { GoogleMapsBusinessScraper };
