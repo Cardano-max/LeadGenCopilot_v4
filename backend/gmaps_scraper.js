@@ -84,8 +84,8 @@ class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - use Puppeteer's installed Chrome
-            this.log('🌐 Running on Render - using Puppeteer Chrome', 'info');
+            // Render environment - find Chrome in cache directory
+            this.log('🌐 Running on Render - locating Chrome executable', 'info');
            
             const args = [
                 '--no-sandbox',
@@ -109,18 +109,36 @@ class GoogleMapsBusinessScraper {
                 '--disable-features=VizDisplayCompositor'
             ];
             
-            // Let Puppeteer use its own installed Chrome (auto-detection)
-            this.log('🔄 Using Puppeteer auto-detection for Chrome', 'info');
-            return {
-                headless: 'new',
-                defaultViewport: { width: 1366, height: 768 },
-                args,
-                ignoreHTTPSErrors: true,
-                ignoreDefaultArgs: ['--disable-extensions'],
-                handleSIGINT: false,
-                handleSIGTERM: false,
-                handleSIGHUP: false
-            };
+            // Try to find Chrome executable using multiple methods
+            const chromePath = this.getRenderChromePath();
+            
+            if (chromePath) {
+                this.log(`✅ Found Chrome at: ${chromePath}`, 'success');
+                return {
+                    headless: 'new',
+                    defaultViewport: { width: 1366, height: 768 },
+                    args,
+                    executablePath: chromePath,
+                    ignoreHTTPSErrors: true,
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                    handleSIGINT: false,
+                    handleSIGTERM: false,
+                    handleSIGHUP: false
+                };
+            } else {
+                // Fallback to auto-detection
+                this.log('🔄 Chrome not found explicitly, using Puppeteer auto-detection', 'warn');
+                return {
+                    headless: 'new',
+                    defaultViewport: { width: 1366, height: 768 },
+                    args,
+                    ignoreHTTPSErrors: true,
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                    handleSIGINT: false,
+                    handleSIGTERM: false,
+                    handleSIGHUP: false
+                };
+            }
         } else {
             // Local development - try to find Chrome
             const chromePath = this.getLocalChromePath();
@@ -146,6 +164,61 @@ class GoogleMapsBusinessScraper {
             return options;
         }
     }
+    /**
+     * Find Chrome executable path in Render environment
+     */
+    getRenderChromePath() {
+        const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer';
+        this.log(`🔍 Searching for Chrome in cache directory: ${cacheDir}`, 'debug');
+        
+        // Possible Chrome paths in Render
+        const possiblePaths = [
+            // Standard Puppeteer Chrome location on Linux
+            `${cacheDir}/chrome/linux-124.0.6367.207/chrome-linux64/chrome`,
+            `${cacheDir}/chrome/linux-121.0.6167.85/chrome-linux64/chrome`,
+            `${cacheDir}/chrome/linux-120.0.6099.109/chrome-linux64/chrome`,
+            // Generic patterns for any version
+            `${cacheDir}/chrome/linux-*/chrome-linux64/chrome`,
+            // System Chrome as backup
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium'
+        ];
+        
+        for (const chromePath of possiblePaths) {
+            try {
+                if (chromePath.includes('*')) {
+                    // Handle glob pattern - find directories matching pattern
+                    const baseDir = chromePath.split('*')[0];
+                    if (fs.existsSync(baseDir)) {
+                        const items = fs.readdirSync(baseDir);
+                        for (const item of items) {
+                            if (item.startsWith('linux-')) {
+                                const fullPath = `${baseDir}${item}/chrome-linux64/chrome`;
+                                if (fs.existsSync(fullPath)) {
+                                    this.log(`✅ Found Chrome via pattern: ${fullPath}`, 'success');
+                                    return fullPath;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if (fs.existsSync(chromePath)) {
+                        this.log(`✅ Found Chrome at: ${chromePath}`, 'success');
+                        return chromePath;
+                    }
+                }
+            } catch (error) {
+                this.log(`⚠️ Error checking path ${chromePath}: ${error.message}`, 'debug');
+                continue;
+            }
+        }
+        
+        this.log('❌ No Chrome executable found in expected locations', 'warn');
+        return null;
+    }
+
     /**
      * Find Chrome executable path for local development
      */
