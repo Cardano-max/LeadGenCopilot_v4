@@ -77,6 +77,36 @@ class GoogleMapsBusinessScraper {
         
         console.log(`${icons[type]} [${timestamp}] ${message}`);
     }
+
+    exploreDirectory(dirPath, maxDepth, currentDepth = 0) {
+        if (currentDepth >= maxDepth) return;
+        
+        try {
+            const items = fs.readdirSync(dirPath);
+            const indent = '  '.repeat(currentDepth);
+            
+            for (const item of items) {
+                const itemPath = `${dirPath}/${item}`;
+                try {
+                    const stats = fs.statSync(itemPath);
+                    if (stats.isDirectory()) {
+                        this.log(`${indent}📁 ${item}/`, 'info');
+                        if (item.includes('chrome') || item.includes('puppeteer')) {
+                            this.exploreDirectory(itemPath, maxDepth, currentDepth + 1);
+                        }
+                    } else {
+                        if (item.includes('chrome')) {
+                            this.log(`${indent}📄 ${item} (${stats.size} bytes)`, 'info');
+                        }
+                    }
+                } catch (itemError) {
+                    this.log(`${indent}⚠️ Error checking ${item}: ${itemError.message}`, 'debug');
+                }
+            }
+        } catch (error) {
+            this.log(`⚠️ Error exploring ${dirPath}: ${error.message}`, 'warn');
+        }
+    }
     /**
      * Get browser launch options optimized for Render
      */
@@ -127,14 +157,36 @@ class GoogleMapsBusinessScraper {
                     }
                 }
                 
-                // Check if cache still exists
-                const cacheDir = '/opt/render/.cache/puppeteer';
-                if (fs.existsSync(cacheDir)) {
-                    this.log(`📁 Cache directory exists: ${cacheDir}`, 'info');
-                    const cacheContents = fs.readdirSync(cacheDir);
-                    this.log(`📁 Cache contents: ${cacheContents.join(', ')}`, 'info');
+                // Check the actual .cache directory structure
+                const baseCacheDir = '/opt/render/.cache';
+                if (fs.existsSync(baseCacheDir)) {
+                    this.log(`📁 Base cache directory exists: ${baseCacheDir}`, 'info');
+                    const baseCacheContents = fs.readdirSync(baseCacheDir);
+                    this.log(`📁 Base cache contents: ${baseCacheContents.join(', ')}`, 'info');
+                    
+                    // Check if puppeteer subdirectory exists
+                    const puppeteerCacheDir = '/opt/render/.cache/puppeteer';
+                    if (fs.existsSync(puppeteerCacheDir)) {
+                        this.log(`📁 Puppeteer cache directory exists: ${puppeteerCacheDir}`, 'info');
+                        const puppeteerContents = fs.readdirSync(puppeteerCacheDir);
+                        this.log(`📁 Puppeteer cache contents: ${puppeteerContents.join(', ')}`, 'info');
+                        
+                        // Check chrome subdirectory
+                        const chromeDir = '/opt/render/.cache/puppeteer/chrome';
+                        if (fs.existsSync(chromeDir)) {
+                            this.log(`📁 Chrome directory exists: ${chromeDir}`, 'info');
+                            const chromeContents = fs.readdirSync(chromeDir);
+                            this.log(`📁 Chrome directory contents: ${chromeContents.join(', ')}`, 'info');
+                        }
+                    } else {
+                        this.log(`❌ Puppeteer cache directory not found: ${puppeteerCacheDir}`, 'error');
+                        this.log(`🔍 Let's see what's actually in the base cache...`, 'info');
+                        
+                        // Recursively explore .cache to find Chrome
+                        this.exploreDirectory(baseCacheDir, 2); // Max depth 2
+                    }
                 } else {
-                    this.log(`❌ Cache directory not found: ${cacheDir}`, 'error');
+                    this.log(`❌ Base cache directory not found: ${baseCacheDir}`, 'error');
                 }
             } catch (debugError) {
                 this.log(`⚠️ Debug error: ${debugError.message}`, 'warn');
