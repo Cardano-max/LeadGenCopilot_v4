@@ -87,6 +87,7 @@ class GoogleMapsBusinessScraper {
             
             return {
                 headless: true,
+                executablePath: undefined, // Let Playwright find the browser automatically
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
@@ -96,7 +97,6 @@ class GoogleMapsBusinessScraper {
                     '--disable-gpu',
                     '--disable-web-security',
                     '--disable-features=VizDisplayCompositor',
-                    '--disable-dev-shm-usage',
                     '--disable-background-timer-throttling',
                     '--disable-backgrounding-occluded-windows',
                     '--disable-renderer-backgrounding'
@@ -284,14 +284,18 @@ class GoogleMapsBusinessScraper {
         this.log(`Query: "${query}", Max Results: ${maxResults}`);
 
         try {
-            // Set Playwright browsers path for Render
+            // Set Playwright browsers path for Render - but let Playwright auto-detect
             if (process.env.RENDER || process.env.NODE_ENV === 'production') {
-                process.env.PLAYWRIGHT_BROWSERS_PATH = '/opt/render/.cache/ms-playwright';
-                this.log(`📁 Set PLAYWRIGHT_BROWSERS_PATH: ${process.env.PLAYWRIGHT_BROWSERS_PATH}`, 'info');
+                // Don't override if already set by environment
+                if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
+                    process.env.PLAYWRIGHT_BROWSERS_PATH = '/opt/render/.cache/ms-playwright';
+                }
+                this.log(`📁 PLAYWRIGHT_BROWSERS_PATH: ${process.env.PLAYWRIGHT_BROWSERS_PATH}`, 'info');
             }
             
             // Launch browser with optimized settings
             const browserOptions = this.getBrowserOptions();
+            this.log(`🔧 Browser options: ${JSON.stringify(browserOptions, null, 2)}`, 'debug');
             this.browser = await chromium.launch(browserOptions);
             this.context = await this.browser.newContext({
                 viewport: { width: 1366, height: 768 },
