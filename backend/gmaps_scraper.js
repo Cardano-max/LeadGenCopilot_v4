@@ -15,7 +15,6 @@
 import { Cluster } from 'puppeteer-cluster';
 import puppeteer from 'puppeteer';
 import fs from 'fs';
-import { ChromeDownloader } from './chrome-downloader.js';
 
 class GoogleMapsBusinessScraper {
     constructor(options = {}) {
@@ -55,7 +54,6 @@ class GoogleMapsBusinessScraper {
         this.cluster = null;
         this.browser = null;
         this.page = null;
-        this.chromeDownloader = new ChromeDownloader();
         this.stats = {
             total: 0,
             processed: 0,
@@ -86,8 +84,8 @@ class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - download Chrome at runtime
-            this.log('🌐 Running on Render - downloading Chrome at runtime', 'info');
+            // Render environment - use build-time installed Chrome
+            this.log('🌐 Running on Render - using build-time Chrome', 'info');
            
             const args = [
                 '--no-sandbox',
@@ -111,38 +109,84 @@ class GoogleMapsBusinessScraper {
                 '--disable-features=VizDisplayCompositor'
             ];
             
-            // Download Chrome at runtime
+            // Debug: List actual directory contents
+            this.log('🔍 Debugging directory structure...', 'info');
             try {
-                const chromePath = await this.chromeDownloader.getChromePath();
-                this.log(`✅ Using downloaded Chrome: ${chromePath}`, 'success');
+                const renderDir = '/opt/render';
+                if (fs.existsSync(renderDir)) {
+                    this.log(`📁 /opt/render exists`, 'info');
+                    const renderContents = fs.readdirSync(renderDir);
+                    this.log(`📁 /opt/render contents: ${renderContents.join(', ')}`, 'info');
+                    
+                    // Check project directory
+                    const projectDir = '/opt/render/project';
+                    if (fs.existsSync(projectDir)) {
+                        this.log(`📁 /opt/render/project exists`, 'info');
+                        const projectContents = fs.readdirSync(projectDir);
+                        this.log(`📁 /opt/render/project contents: ${projectContents.join(', ')}`, 'info');
+                    }
+                }
                 
-                return {
-                    headless: 'new',
-                    defaultViewport: { width: 1366, height: 768 },
-                    args,
-                    executablePath: chromePath,
-                    ignoreHTTPSErrors: true,
-                    ignoreDefaultArgs: ['--disable-extensions'],
-                    handleSIGINT: false,
-                    handleSIGTERM: false,
-                    handleSIGHUP: false
-                };
-            } catch (error) {
-                this.log(`❌ Failed to download Chrome: ${error.message}`, 'error');
-                this.log('🔄 Falling back to system Chrome detection', 'warn');
-                
-                // Fallback to system detection
-                return {
-                    headless: 'new',
-                    defaultViewport: { width: 1366, height: 768 },
-                    args,
-                    ignoreHTTPSErrors: true,
-                    ignoreDefaultArgs: ['--disable-extensions'],
-                    handleSIGINT: false,
-                    handleSIGTERM: false,
-                    handleSIGHUP: false
-                };
+                // Check if cache still exists
+                const cacheDir = '/opt/render/.cache/puppeteer';
+                if (fs.existsSync(cacheDir)) {
+                    this.log(`📁 Cache directory exists: ${cacheDir}`, 'info');
+                    const cacheContents = fs.readdirSync(cacheDir);
+                    this.log(`📁 Cache contents: ${cacheContents.join(', ')}`, 'info');
+                } else {
+                    this.log(`❌ Cache directory not found: ${cacheDir}`, 'error');
+                }
+            } catch (debugError) {
+                this.log(`⚠️ Debug error: ${debugError.message}`, 'warn');
             }
+            
+            // Try to find Chrome in various locations
+            const possibleChromePaths = [
+                '/opt/render/.cache/puppeteer/chrome/linux-124.0.6367.207/chrome-linux64/chrome',
+                '/opt/render/.cache/puppeteer/chrome/linux-121.0.6167.85/chrome-linux64/chrome',
+                process.env.PUPPETEER_EXECUTABLE_PATH,
+                // Try to find in project directory
+                '/opt/render/project/src/backend/.cache/puppeteer/chrome/linux-124.0.6367.207/chrome-linux64/chrome',
+                '/opt/render/project/src/backend/node_modules/puppeteer/.local-chromium/linux-*/chrome-linux/chrome'
+            ].filter(Boolean);
+            
+            // Try each possible Chrome path
+            for (const chromePath of possibleChromePaths) {
+                try {
+                    if (fs.existsSync(chromePath)) {
+                        this.log(`✅ Found build-time Chrome: ${chromePath}`, 'success');
+                        return {
+                            headless: 'new',
+                            defaultViewport: { width: 1366, height: 768 },
+                            args,
+                            executablePath: chromePath,
+                            ignoreHTTPSErrors: true,
+                            ignoreDefaultArgs: ['--disable-extensions'],
+                            handleSIGINT: false,
+                            handleSIGTERM: false,
+                            handleSIGHUP: false
+                        };
+                    } else {
+                        this.log(`❌ Chrome not found at: ${chromePath}`, 'debug');
+                    }
+                } catch (error) {
+                    this.log(`⚠️ Error checking Chrome path ${chromePath}: ${error.message}`, 'debug');
+                }
+            }
+            
+            this.log('🔄 No Chrome found, using Puppeteer auto-detection', 'warn');
+            
+            // Final fallback to Puppeteer auto-detection
+            return {
+                headless: 'new',
+                defaultViewport: { width: 1366, height: 768 },
+                args,
+                ignoreHTTPSErrors: true,
+                ignoreDefaultArgs: ['--disable-extensions'],
+                handleSIGINT: false,
+                handleSIGTERM: false,
+                handleSIGHUP: false
+            };
         } else {
             // Local development - try to find Chrome
             const chromePath = this.getLocalChromePath();
