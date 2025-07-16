@@ -84,8 +84,8 @@ class GoogleMapsBusinessScraper {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - find Chrome in cache directory
-            this.log('🌐 Running on Render - locating Chrome executable', 'info');
+            // Render environment - use Puppeteer's native browser detection
+            this.log('🌐 Running on Render - using Puppeteer native detection', 'info');
            
             const args = [
                 '--no-sandbox',
@@ -109,36 +109,18 @@ class GoogleMapsBusinessScraper {
                 '--disable-features=VizDisplayCompositor'
             ];
             
-            // Try to find Chrome executable using multiple methods
-            const chromePath = this.getRenderChromePath();
-            
-            if (chromePath) {
-                this.log(`✅ Found Chrome at: ${chromePath}`, 'success');
-                return {
-                    headless: 'new',
-                    defaultViewport: { width: 1366, height: 768 },
-                    args,
-                    executablePath: chromePath,
-                    ignoreHTTPSErrors: true,
-                    ignoreDefaultArgs: ['--disable-extensions'],
-                    handleSIGINT: false,
-                    handleSIGTERM: false,
-                    handleSIGHUP: false
-                };
-            } else {
-                // Fallback to auto-detection
-                this.log('🔄 Chrome not found explicitly, using Puppeteer auto-detection', 'warn');
-                return {
-                    headless: 'new',
-                    defaultViewport: { width: 1366, height: 768 },
-                    args,
-                    ignoreHTTPSErrors: true,
-                    ignoreDefaultArgs: ['--disable-extensions'],
-                    handleSIGINT: false,
-                    handleSIGTERM: false,
-                    handleSIGHUP: false
-                };
-            }
+            // Use Puppeteer's native Chrome detection - no manual path needed
+            this.log('🔄 Using Puppeteer native Chrome detection (recommended for Render)', 'info');
+            return {
+                headless: 'new',
+                defaultViewport: { width: 1366, height: 768 },
+                args,
+                ignoreHTTPSErrors: true,
+                ignoreDefaultArgs: ['--disable-extensions'],
+                handleSIGINT: false,
+                handleSIGTERM: false,
+                handleSIGHUP: false
+            };
         } else {
             // Local development - try to find Chrome
             const chromePath = this.getLocalChromePath();
