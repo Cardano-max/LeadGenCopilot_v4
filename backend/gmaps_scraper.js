@@ -15,6 +15,7 @@
 import { Cluster } from 'puppeteer-cluster';
 import puppeteer from 'puppeteer';
 import fs from 'fs';
+import { ChromeDownloader } from './chrome-downloader.js';
 
 class GoogleMapsBusinessScraper {
     constructor(options = {}) {
@@ -54,6 +55,7 @@ class GoogleMapsBusinessScraper {
         this.cluster = null;
         this.browser = null;
         this.page = null;
+        this.chromeDownloader = new ChromeDownloader();
         this.stats = {
             total: 0,
             processed: 0,
@@ -80,12 +82,12 @@ class GoogleMapsBusinessScraper {
     /**
      * Get browser launch options optimized for Render
      */
-    getBrowserOptions() {
+    async getBrowserOptions() {
         const isRender = process.env.RENDER || process.env.NODE_ENV === 'production';
         
         if (isRender) {
-            // Render environment - use Puppeteer's native browser detection
-            this.log('🌐 Running on Render - using Puppeteer native detection', 'info');
+            // Render environment - download Chrome at runtime
+            this.log('🌐 Running on Render - downloading Chrome at runtime', 'info');
            
             const args = [
                 '--no-sandbox',
@@ -109,18 +111,38 @@ class GoogleMapsBusinessScraper {
                 '--disable-features=VizDisplayCompositor'
             ];
             
-            // Use Puppeteer's native Chrome detection - no manual path needed
-            this.log('🔄 Using Puppeteer native Chrome detection (recommended for Render)', 'info');
-            return {
-                headless: 'new',
-                defaultViewport: { width: 1366, height: 768 },
-                args,
-                ignoreHTTPSErrors: true,
-                ignoreDefaultArgs: ['--disable-extensions'],
-                handleSIGINT: false,
-                handleSIGTERM: false,
-                handleSIGHUP: false
-            };
+            // Download Chrome at runtime
+            try {
+                const chromePath = await this.chromeDownloader.getChromePath();
+                this.log(`✅ Using downloaded Chrome: ${chromePath}`, 'success');
+                
+                return {
+                    headless: 'new',
+                    defaultViewport: { width: 1366, height: 768 },
+                    args,
+                    executablePath: chromePath,
+                    ignoreHTTPSErrors: true,
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                    handleSIGINT: false,
+                    handleSIGTERM: false,
+                    handleSIGHUP: false
+                };
+            } catch (error) {
+                this.log(`❌ Failed to download Chrome: ${error.message}`, 'error');
+                this.log('🔄 Falling back to system Chrome detection', 'warn');
+                
+                // Fallback to system detection
+                return {
+                    headless: 'new',
+                    defaultViewport: { width: 1366, height: 768 },
+                    args,
+                    ignoreHTTPSErrors: true,
+                    ignoreDefaultArgs: ['--disable-extensions'],
+                    handleSIGINT: false,
+                    handleSIGTERM: false,
+                    handleSIGHUP: false
+                };
+            }
         } else {
             // Local development - try to find Chrome
             const chromePath = this.getLocalChromePath();
@@ -458,7 +480,7 @@ class GoogleMapsBusinessScraper {
         
         try {
             // Browser configuration optimized for Render
-            const browserOptions = this.getBrowserOptions();
+            const browserOptions = await this.getBrowserOptions();
             this.browser = await puppeteer.launch(browserOptions);
 
             this.page = await this.browser.newPage();
@@ -565,7 +587,7 @@ class GoogleMapsBusinessScraper {
         
         try {
             // Get optimized browser options for Render
-            const browserOptions = this.getBrowserOptions();
+            const browserOptions = await this.getBrowserOptions();
             
             // Initialize cluster with optimized settings for speed
             this.cluster = await Cluster.launch({
@@ -655,7 +677,7 @@ class GoogleMapsBusinessScraper {
      * Helper method to get business URLs sequentially (used by parallel scraper)
      */
     async getBusinessUrlsSequential(query, maxResults) {
-        const browserOptions = this.getBrowserOptions();
+        const browserOptions = await this.getBrowserOptions();
         const browser = await puppeteer.launch(browserOptions);
 
         try {
