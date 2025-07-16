@@ -4,7 +4,7 @@ services:
     env: node
     region: oregon
     rootDir: backend
-    buildCommand: npm ci --only=production && npx puppeteer browsers install chrome
+    buildCommand: npm ci && npx puppeteer browsers install chrome
     startCommand: NODE_OPTIONS="--openssl-legacy-provider" node server.js
     envVars:
       - key: NODE_VERSION

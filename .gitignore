@@ -48,4 +48,4 @@ temp/
 
 # Chrome/Puppeteer cache
 .cache/
-.local-chromium/
+.local-chromium/backend/.cache/
