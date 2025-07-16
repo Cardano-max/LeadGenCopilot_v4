@@ -169,53 +169,91 @@ class GoogleMapsBusinessScraper {
      */
     getRenderChromePath() {
         const cacheDir = process.env.PUPPETEER_CACHE_DIR || '/opt/render/.cache/puppeteer';
-        this.log(`🔍 Searching for Chrome in cache directory: ${cacheDir}`, 'debug');
+        this.log(`🔍 Searching for Chrome in cache directory: ${cacheDir}`, 'info');
         
-        // Possible Chrome paths in Render
-        const possiblePaths = [
-            // Standard Puppeteer Chrome location on Linux
-            `${cacheDir}/chrome/linux-124.0.6367.207/chrome-linux64/chrome`,
-            `${cacheDir}/chrome/linux-121.0.6167.85/chrome-linux64/chrome`,
-            `${cacheDir}/chrome/linux-120.0.6099.109/chrome-linux64/chrome`,
-            // Generic patterns for any version
-            `${cacheDir}/chrome/linux-*/chrome-linux64/chrome`,
-            // System Chrome as backup
-            '/usr/bin/google-chrome-stable',
-            '/usr/bin/google-chrome',
-            '/usr/bin/chromium-browser',
-            '/usr/bin/chromium'
-        ];
-        
-        for (const chromePath of possiblePaths) {
-            try {
-                if (chromePath.includes('*')) {
-                    // Handle glob pattern - find directories matching pattern
-                    const baseDir = chromePath.split('*')[0];
-                    if (fs.existsSync(baseDir)) {
-                        const items = fs.readdirSync(baseDir);
-                        for (const item of items) {
-                            if (item.startsWith('linux-')) {
-                                const fullPath = `${baseDir}${item}/chrome-linux64/chrome`;
-                                if (fs.existsSync(fullPath)) {
-                                    this.log(`✅ Found Chrome via pattern: ${fullPath}`, 'success');
-                                    return fullPath;
+        // First, let's explore the actual directory structure
+        try {
+            if (fs.existsSync(cacheDir)) {
+                this.log(`✅ Cache directory exists: ${cacheDir}`, 'info');
+                const contents = fs.readdirSync(cacheDir);
+                this.log(`📁 Cache directory contents: ${contents.join(', ')}`, 'info');
+                
+                // Check chrome subdirectory
+                const chromeDir = `${cacheDir}/chrome`;
+                if (fs.existsSync(chromeDir)) {
+                    this.log(`✅ Chrome directory exists: ${chromeDir}`, 'info');
+                    const chromeContents = fs.readdirSync(chromeDir);
+                    this.log(`📁 Chrome directory contents: ${chromeContents.join(', ')}`, 'info');
+                    
+                    // Look for any linux version directory
+                    for (const item of chromeContents) {
+                        if (item.startsWith('linux-')) {
+                            const versionDir = `${chromeDir}/${item}`;
+                            this.log(`🔍 Checking version directory: ${versionDir}`, 'info');
+                            
+                            if (fs.existsSync(versionDir)) {
+                                const versionContents = fs.readdirSync(versionDir);
+                                this.log(`📁 Version directory contents: ${versionContents.join(', ')}`, 'info');
+                                
+                                // Check for chrome-linux64 directory
+                                const chromeLinuxDir = `${versionDir}/chrome-linux64`;
+                                if (fs.existsSync(chromeLinuxDir)) {
+                                    this.log(`✅ Chrome-linux64 directory exists: ${chromeLinuxDir}`, 'info');
+                                    const linuxContents = fs.readdirSync(chromeLinuxDir);
+                                    this.log(`📁 Chrome-linux64 contents: ${linuxContents.join(', ')}`, 'info');
+                                    
+                                    // Check for chrome executable
+                                    const chromePath = `${chromeLinuxDir}/chrome`;
+                                    if (fs.existsSync(chromePath)) {
+                                        this.log(`✅ Found Chrome executable: ${chromePath}`, 'success');
+                                        
+                                        // Check if it's executable
+                                        try {
+                                            const stats = fs.statSync(chromePath);
+                                            this.log(`📊 Chrome file permissions: ${stats.mode.toString(8)}`, 'info');
+                                            return chromePath;
+                                        } catch (statError) {
+                                            this.log(`⚠️ Error checking Chrome stats: ${statError.message}`, 'warn');
+                                            return chromePath; // Still try to use it
+                                        }
+                                    } else {
+                                        this.log(`❌ Chrome executable not found at: ${chromePath}`, 'error');
+                                    }
+                                } else {
+                                    this.log(`❌ Chrome-linux64 directory not found: ${chromeLinuxDir}`, 'error');
                                 }
                             }
                         }
                     }
                 } else {
-                    if (fs.existsSync(chromePath)) {
-                        this.log(`✅ Found Chrome at: ${chromePath}`, 'success');
-                        return chromePath;
-                    }
+                    this.log(`❌ Chrome directory not found: ${chromeDir}`, 'error');
                 }
-            } catch (error) {
-                this.log(`⚠️ Error checking path ${chromePath}: ${error.message}`, 'debug');
-                continue;
+            } else {
+                this.log(`❌ Cache directory not found: ${cacheDir}`, 'error');
+            }
+        } catch (error) {
+            this.log(`❌ Error exploring directory structure: ${error.message}`, 'error');
+        }
+        
+        // Fallback: try known paths directly
+        const fallbackPaths = [
+            `${cacheDir}/chrome/linux-124.0.6367.207/chrome-linux64/chrome`,
+            `${cacheDir}/chrome/linux-121.0.6167.85/chrome-linux64/chrome`,
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome'
+        ];
+        
+        this.log(`🔄 Trying fallback paths...`, 'info');
+        for (const path of fallbackPaths) {
+            if (fs.existsSync(path)) {
+                this.log(`✅ Found Chrome at fallback path: ${path}`, 'success');
+                return path;
+            } else {
+                this.log(`❌ Fallback path not found: ${path}`, 'debug');
             }
         }
         
-        this.log('❌ No Chrome executable found in expected locations', 'warn');
+        this.log('❌ No Chrome executable found in any location', 'error');
         return null;
     }
 
