@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { GoogleMapsBusinessScraper } from './gmaps_scraper.js';
+import { GoogleMapsBusinessScraper } from './gmaps_scraper_playwright.js';
 
 // Load environment variables
 dotenv.config();
@@ -62,7 +62,7 @@ app.get('/health', (req, res) => {
 // Google Maps scraper endpoint
 app.post('/api/scrape-gmaps', async (req, res) => {
   try {
-    const { query, maxResults = 15, mode = 'sequential', proMode = false } = req.body;
+    const { query, maxResults = 15 } = req.body;
 
     // Validation
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
@@ -79,23 +79,19 @@ app.post('/api/scrape-gmaps', async (req, res) => {
       });
     }
 
-    const modeText = proMode ? 'Pro (Concurrent)' : 'Standard (Sequential)';
+    const modeText = 'Playwright (Reliable)';
     console.log(`🔍 Starting ${modeText} scrape for query: "${query}" (max ${maxResults} results)`);
 
-    // Initialize scraper with Pro mode optimizations
+    // Initialize Playwright scraper
     const scraper = new GoogleMapsBusinessScraper({
-      maxConcurrency: proMode ? 6 : 1, // Pro mode uses 6 concurrent workers
-      useParallel: proMode, // Enable parallel processing for Pro mode
       headless: true,
       maxResults: parseInt(maxResults),
-      delay: proMode ? 1500 : 3000, // Faster delays for Pro mode
+      delay: 3000,
       verbose: true,
-      retryLimit: proMode ? 3 : 2,
+      retryLimit: 2,
       timeout: 45000,
-      outputFormat: 'json',
-      maxScrollAttempts: proMode ? 15 : 10, // More scroll attempts for Pro
-      scrollDelay: proMode ? 1500 : 2500, // Faster scrolling for Pro
-      proMode: proMode
+      maxScrollAttempts: 10,
+      scrollDelay: 2500
     });
 
     // Start scraping
@@ -114,13 +110,13 @@ app.post('/api/scrape-gmaps', async (req, res) => {
       query,
       totalResults: results.length,
       processingTime: processingTime,
-      mode: proMode ? 'pro' : 'standard',
+      mode: 'playwright',
       results,
       stats: {
         ...scraper.stats,
         processingTimeMs: processingTime,
         avgTimePerResult: avgSpeed,
-        mode: proMode ? 'parallel-pro' : 'sequential-standard'
+        mode: 'playwright-reliable'
       }
     });
 
