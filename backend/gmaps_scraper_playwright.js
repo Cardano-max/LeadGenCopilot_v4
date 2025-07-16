@@ -80,6 +80,11 @@ class GoogleMapsBusinessScraper {
         
         if (isProduction) {
             this.log('🌐 Running in production - using Playwright optimized settings', 'info');
+            
+            // Set the browsers path for Render
+            const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/render/.cache/ms-playwright';
+            this.log(`🔍 Playwright browsers path: ${browsersPath}`, 'info');
+            
             return {
                 headless: true,
                 args: [
@@ -90,7 +95,11 @@ class GoogleMapsBusinessScraper {
                     '--no-first-run',
                     '--disable-gpu',
                     '--disable-web-security',
-                    '--disable-features=VizDisplayCompositor'
+                    '--disable-features=VizDisplayCompositor',
+                    '--disable-dev-shm-usage',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding'
                 ]
             };
         } else {
@@ -275,6 +284,12 @@ class GoogleMapsBusinessScraper {
         this.log(`Query: "${query}", Max Results: ${maxResults}`);
 
         try {
+            // Set Playwright browsers path for Render
+            if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+                process.env.PLAYWRIGHT_BROWSERS_PATH = '/opt/render/.cache/ms-playwright';
+                this.log(`📁 Set PLAYWRIGHT_BROWSERS_PATH: ${process.env.PLAYWRIGHT_BROWSERS_PATH}`, 'info');
+            }
+            
             // Launch browser with optimized settings
             const browserOptions = this.getBrowserOptions();
             this.browser = await chromium.launch(browserOptions);
