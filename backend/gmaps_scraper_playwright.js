@@ -12,6 +12,11 @@
  */
 
 import { chromium } from 'playwright';
+import fs from 'fs';
+import path from 'path';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 class GoogleMapsBusinessScraper {
     constructor(options = {}) {
@@ -73,6 +78,85 @@ class GoogleMapsBusinessScraper {
     }
 
     /**
+     * Find Chromium executable path on Render
+     */
+    findChromiumExecutable() {
+        const possiblePaths = [
+            // Standard Playwright installation paths
+            '/opt/render/.cache/ms-playwright/chromium-1091/chrome-linux/chrome',
+            '/opt/render/.cache/ms-playwright/chromium-*/chrome-linux/chrome',
+            // Alternative Playwright paths
+            path.join(process.cwd(), 'node_modules/playwright/.local-browsers/chromium-*/chrome-linux/chrome'),
+            path.join(process.cwd(), 'node_modules/playwright-core/.local-browsers/chromium-*/chrome-linux/chrome'),
+            // System Chrome paths
+            '/usr/bin/google-chrome-stable',
+            '/usr/bin/google-chrome',
+            '/usr/bin/chromium-browser',
+            '/usr/bin/chromium'
+        ];
+
+        this.log(`🔍 Searching for Chromium executable...`, 'info');
+        
+        for (const execPath of possiblePaths) {
+            if (execPath.includes('*')) {
+                // Handle wildcard paths
+                const dir = path.dirname(execPath);
+                const filename = path.basename(execPath);
+                
+                try {
+                    if (fs.existsSync(dir)) {
+                        const items = fs.readdirSync(dir);
+                        for (const item of items) {
+                            if (item.startsWith('chromium-')) {
+                                const fullPath = path.join(dir, item, filename.replace('*', ''));
+                                if (fs.existsSync(fullPath)) {
+                                    this.log(`✅ Found Chromium at: ${fullPath}`, 'success');
+                                    return fullPath;
+                                }
+                            }
+                        }
+                    }
+                } catch (error) {
+                    this.log(`⚠️ Error checking wildcard path ${execPath}: ${error.message}`, 'debug');
+                }
+            } else {
+                // Direct path check
+                if (fs.existsSync(execPath)) {
+                    this.log(`✅ Found Chromium at: ${execPath}`, 'success');
+                    return execPath;
+                }
+            }
+        }
+
+        // Try to find via playwright package
+        try {
+            const playwrightPath = require.resolve('playwright');
+            const playwrightDir = path.dirname(playwrightPath);
+            const browsersPath = path.join(playwrightDir, '.local-browsers');
+            
+            if (fs.existsSync(browsersPath)) {
+                this.log(`📁 Checking Playwright browsers directory: ${browsersPath}`, 'info');
+                const browserDirs = fs.readdirSync(browsersPath);
+                
+                for (const browserDir of browserDirs) {
+                    if (browserDir.startsWith('chromium-')) {
+                        const chromePath = path.join(browsersPath, browserDir, 'chrome-linux', 'chrome');
+                        if (fs.existsSync(chromePath)) {
+                            this.log(`✅ Found Playwright Chromium: ${chromePath}`, 'success');
+                            return chromePath;
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            this.log(`⚠️ Error finding Playwright installation: ${error.message}`, 'debug');
+        }
+
+        this.log(`❌ No Chromium executable found`, 'error');
+        return null;
+    }
+
+    /**
      * Get browser launch options for Playwright
      */
     getBrowserOptions() {
@@ -81,13 +165,11 @@ class GoogleMapsBusinessScraper {
         if (isProduction) {
             this.log('🌐 Running in production - using Playwright optimized settings', 'info');
             
-            // Set the browsers path for Render
-            const browsersPath = process.env.PLAYWRIGHT_BROWSERS_PATH || '/opt/render/.cache/ms-playwright';
-            this.log(`🔍 Playwright browsers path: ${browsersPath}`, 'info');
+            // Try to find Chromium executable
+            const executablePath = this.findChromiumExecutable();
             
-            return {
+            const options = {
                 headless: true,
-                executablePath: undefined, // Let Playwright find the browser automatically
                 args: [
                     '--no-sandbox',
                     '--disable-setuid-sandbox',
@@ -102,6 +184,15 @@ class GoogleMapsBusinessScraper {
                     '--disable-renderer-backgrounding'
                 ]
             };
+
+            if (executablePath) {
+                options.executablePath = executablePath;
+                this.log(`🎯 Using executable path: ${executablePath}`, 'info');
+            } else {
+                this.log(`🔄 Using Playwright auto-detection`, 'info');
+            }
+            
+            return options;
         } else {
             this.log('💻 Running in development mode', 'info');
             return {
