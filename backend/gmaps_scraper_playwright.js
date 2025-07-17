@@ -33,7 +33,7 @@ class GoogleMapsBusinessScraper {
             ...options
         };
         
-        // Proven working selectors
+        // Proven working selectors from successful Puppeteer version
         this.selectors = {
             feedContainer: '[role="feed"]',
             resultContainer: '.Nv2PK',
@@ -485,8 +485,18 @@ class GoogleMapsBusinessScraper {
                         timeout: this.options.timeout
                     });
                     
-                    await this.page.waitForSelector(this.selectors.businessName, { timeout: 10000 });
-                    await this.page.waitForTimeout(1500);
+                    // Wait for page to load and try multiple selectors
+                    await this.page.waitForTimeout(2000);
+                    
+                    // Try to wait for any of the business name selectors
+                    try {
+                        await this.page.waitForSelector(this.selectors.businessName, { timeout: 15000 });
+                    } catch (selectorError) {
+                        this.log(`⚠️ Business name selector timeout, continuing with extraction`, 'warn');
+                        // Continue anyway - we might still extract some data
+                    }
+                    
+                    await this.page.waitForTimeout(1000);
 
                     const businessDetails = await this.extractBusinessData(this.page, query, i + 1);
                     
