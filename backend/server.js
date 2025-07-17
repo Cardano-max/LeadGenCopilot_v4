@@ -50,6 +50,33 @@ app.get('/', (req, res) => {
   });
 });
 
+// Debug endpoint for browser detection
+app.get('/debug/browser', (req, res) => {
+  try {
+    const scraper = new GoogleMapsBusinessScraper({ verbose: true });
+    const browserPath = scraper.findChromiumExecutable();
+    const browserOptions = scraper.getBrowserOptions();
+    
+    res.json({
+      success: true,
+      detectedBrowserPath: browserPath,
+      browserOptions: browserOptions,
+      environment: {
+        NODE_ENV: process.env.NODE_ENV,
+        RENDER: process.env.RENDER,
+        PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
