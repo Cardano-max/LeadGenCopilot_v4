@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { GoogleMapsBusinessScraper } from './gmaps_scraper_playwright.js';
 
 // Load environment variables
@@ -58,8 +60,6 @@ app.get('/debug/browser', (req, res) => {
     const browserOptions = scraper.getBrowserOptions();
     
     // Explore filesystem to find browsers
-    const fs = require('fs');
-    const path = require('path');
     
     const exploreDir = (dirPath, maxDepth = 2, currentDepth = 0) => {
       const result = { path: dirPath, exists: false, contents: [] };
