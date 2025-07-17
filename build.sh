@@ -9,7 +9,7 @@ cd backend
 echo "📦 Installing dependencies with npm install (no lock file)..."
 npm install --no-package-lock --legacy-peer-deps --production
 
-echo "🌐 Installing Chrome browser for Puppeteer..."
-npx puppeteer browsers install chrome
+echo "🌐 Installing Chromium browser for Playwright..."
+npx playwright install chromium
 
 echo "✅ Build completed successfully!"
