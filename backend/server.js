@@ -52,61 +52,18 @@ app.get('/', (req, res) => {
   });
 });
 
-// Debug endpoint for browser detection
+// Debug endpoint for browser detection  
 app.get('/debug/browser', (req, res) => {
   try {
-    const scraper = new GoogleMapsBusinessScraper({ verbose: true });
-    const browserPath = scraper.findChromiumExecutable();
-    const browserOptions = scraper.getBrowserOptions();
-    
-    // Explore filesystem to find browsers
-    
-    const exploreDir = (dirPath, maxDepth = 2, currentDepth = 0) => {
-      const result = { path: dirPath, exists: false, contents: [] };
-      
-      try {
-        if (fs.existsSync(dirPath)) {
-          result.exists = true;
-          if (currentDepth < maxDepth) {
-            const items = fs.readdirSync(dirPath);
-            result.contents = items.map(item => {
-              const itemPath = path.join(dirPath, item);
-              const isDir = fs.statSync(itemPath).isDirectory();
-              const itemResult = { name: item, isDirectory: isDir };
-              
-              if (isDir && currentDepth < maxDepth - 1) {
-                itemResult.contents = exploreDir(itemPath, maxDepth, currentDepth + 1).contents;
-              }
-              
-              return itemResult;
-            });
-          }
-        }
-      } catch (error) {
-        result.error = error.message;
-      }
-      
-      return result;
-    };
-    
-    const exploration = {
-      renderCache: exploreDir('/opt/render/.cache'),
-      renderProject: exploreDir('/opt/render/project'),
-      nodeModules: exploreDir(path.join(process.cwd(), 'node_modules/playwright')),
-      workingDir: exploreDir(process.cwd())
-    };
-    
     res.json({
       success: true,
-      detectedBrowserPath: browserPath,
-      browserOptions: browserOptions,
+      message: "Browser debug endpoint working",
       environment: {
         NODE_ENV: process.env.NODE_ENV,
         RENDER: process.env.RENDER,
         PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH,
         PWD: process.cwd()
       },
-      filesystem: exploration,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

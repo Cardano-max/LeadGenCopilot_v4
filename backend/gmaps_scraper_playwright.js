@@ -387,7 +387,45 @@ class GoogleMapsBusinessScraper {
             // Launch browser with optimized settings
             const browserOptions = this.getBrowserOptions();
             this.log(`🔧 Browser options: ${JSON.stringify(browserOptions, null, 2)}`, 'debug');
-            this.browser = await chromium.launch(browserOptions);
+            
+            try {
+                this.browser = await chromium.launch(browserOptions);
+                this.log(`✅ Browser launched successfully`, 'success');
+            } catch (launchError) {
+                this.log(`❌ Browser launch failed: ${launchError.message}`, 'error');
+                
+                // If running in production and browser launch fails, try installing browsers
+                if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+                    this.log(`🔄 Attempting runtime browser installation...`, 'info');
+                    
+                    try {
+                        const { exec } = await import('child_process');
+                        const { promisify } = await import('util');
+                        const execAsync = promisify(exec);
+                        
+                        this.log(`📥 Installing Chromium browser...`, 'info');
+                        const { stdout, stderr } = await execAsync('npx playwright install chromium', {
+                            timeout: 120000 // 2 minutes timeout
+                        });
+                        
+                        this.log(`📥 Installation output: ${stdout}`, 'info');
+                        if (stderr) {
+                            this.log(`⚠️ Installation warnings: ${stderr}`, 'warn');
+                        }
+                        
+                        // Try launching again after installation
+                        this.log(`🔄 Retrying browser launch after installation...`, 'info');
+                        this.browser = await chromium.launch(browserOptions);
+                        this.log(`✅ Browser launched successfully after runtime installation`, 'success');
+                        
+                    } catch (installError) {
+                        this.log(`❌ Runtime browser installation failed: ${installError.message}`, 'error');
+                        throw new Error(`Browser launch failed and runtime installation failed: ${launchError.message} | Install error: ${installError.message}`);
+                    }
+                } else {
+                    throw launchError;
+                }
+            }
             this.context = await this.browser.newContext({
                 viewport: { width: 1366, height: 768 },
                 userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
